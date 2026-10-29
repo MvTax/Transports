@@ -70,6 +70,8 @@ small{display:block;margin-top:18px;color:var(--muted);font-size:13px}
   return fetch('app.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.text()})
    .then(function(t){try{localStorage.setItem('app-json',t)}catch(e){}return JSON.parse(t)},function(){try{return saved()}catch(e){return fetch('app.json').then(function(r){if(!r.ok)throw 0;return r.json()})}})
    .then(function(x){P=x;return x})}
+ /* copie hors ligne de la page et de l'appli (service worker) */
+ try{if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(function(){})}catch(e){}
  var ready=getP();
  ready.then(stored).then(function(k){if(!k)return lockUI();return open(k).then(show,lockUI)}).catch(function(){lockUI();if(!P)document.getElementById('msg').textContent='Pas de réseau : réessaie dans un instant.'});
  document.getElementById('f').addEventListener('submit',function(e){
