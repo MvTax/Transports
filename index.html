@@ -72,8 +72,12 @@ small{display:block;margin-top:18px;color:var(--muted);font-size:13px}
    .then(function(x){P=x;return x})}
  /* copie hors ligne de la page et de l'appli (service worker) */
  try{if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(function(){})}catch(e){}
+ /* format 2 : l'appli est chiffrée avec sa propre clé, elle-même chiffrée avec le code (le code peut changer sans réautoriser cet appareil) */
+ function unwrap(wk){return S.decrypt({name:'AES-GCM',iv:b64b(P.wi)},wk,b64b(P.w))}
+ function remember(key,raw){return idbPut(key).then(function(){return idbGet()}).then(function(k){if(!k)throw 0}).catch(function(){try{localStorage.setItem(LS,bb64(raw))}catch(x){}})}
+ function viaWrap(wk){return unwrap(wk).then(function(raw){return S.importKey('raw',raw,{name:'AES-GCM'},false,['decrypt']).then(function(K){return open(K).then(function(html){return remember(K,raw).then(function(){return html})})})})}
  var ready=getP();
- ready.then(stored).then(function(k){if(!k)return lockUI();return open(k).then(show,lockUI)}).catch(function(){lockUI();if(!P)document.getElementById('msg').textContent='Pas de réseau : réessaie dans un instant.'});
+ ready.then(stored).then(function(k){if(!k)return lockUI();return open(k).then(show,function(){if(!P.w)throw 0;return viaWrap(k).then(show)})}).catch(function(){lockUI();if(!P)document.getElementById('msg').textContent='Pas de réseau : réessaie dans un instant.'});
  document.getElementById('f').addEventListener('submit',function(e){
   e.preventDefault();var inp=document.getElementById('code'),msg=document.getElementById('msg'),go=document.getElementById('go');
   if(!inp.value.trim()){inp.focus();return}
@@ -82,6 +86,7 @@ small{display:block;margin-top:18px;color:var(--muted);font-size:13px}
    .then(function(k){return S.deriveBits({name:'PBKDF2',salt:b64b(P.s),iterations:P.n,hash:'SHA-256'},k,256)})
    .then(function(bits){
     return S.importKey('raw',bits,{name:'AES-GCM'},false,['decrypt']).then(function(key){
+     if(P.w)return viaWrap(key).then(show);
      return open(key).then(function(html){
       /* clé gardée sur cet appareil : non exportable dans IndexedDB, sinon en secours dans le stockage local */
       return idbPut(key).then(function(){return idbGet()}).then(function(k){if(!k)throw 0})
